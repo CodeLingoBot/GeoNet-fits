@@ -26,12 +26,12 @@ type properties struct {
 
 func geoJSONToMarkers(b []byte) (m []map180.Marker, err error) {
 	var f features
-	err = json.Unmarshal(b, &f)
+	innererr = json.Unmarshal(b, &f)
 
 	for _, s := range f.Features {
 		mr := map180.NewMarker(s.Geometry.Coordinates[0], s.Geometry.Coordinates[1], s.Properties.SiteID,
 			fmt.Sprintf("%s (%s)", s.Properties.Name, s.Properties.SiteID), s.Properties.SiteID)
-		m = append(m, mr)
+		innerm = append(innerm, mr)
 	}
 	return
 }

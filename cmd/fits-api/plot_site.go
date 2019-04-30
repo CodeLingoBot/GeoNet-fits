@@ -124,7 +124,7 @@ func (plt *plt) addSeries(t typeQ, start time.Time, days int, sites ...siteQ) (e
 
 		switch {
 		case start.IsZero() && days == 0:
-			rows, err = db.Query(
+			rows, innererr = db.Query(
 				`SELECT time, value, error FROM fits.observation
 		WHERE
 		sitepk = (
@@ -135,7 +135,7 @@ func (plt *plt) addSeries(t typeQ, start time.Time, days int, sites ...siteQ) (e
 		)
 	ORDER BY time ASC;`, s.siteID, t.typeID)
 		case !start.IsZero() && days == 0:
-			rows, err = db.Query(`SELECT time, value, error FROM fits.observation
+			rows, innererr = db.Query(`SELECT time, value, error FROM fits.observation
 		WHERE
 		sitepk = (
 			SELECT DISTINCT ON (sitepk) sitepk from fits.site where siteid = $1
@@ -146,7 +146,7 @@ func (plt *plt) addSeries(t typeQ, start time.Time, days int, sites ...siteQ) (e
 	AND time > $3
 	ORDER BY time ASC;`, s.siteID, t.typeID, start)
 		case !start.IsZero() && days != 0:
-			rows, err = db.Query(`SELECT time, value, error FROM fits.observation
+			rows, innererr = db.Query(`SELECT time, value, error FROM fits.observation
 		WHERE
 		sitepk = (
 			SELECT DISTINCT ON (sitepk) sitepk from fits.site where siteid = $1
@@ -168,8 +168,8 @@ func (plt *plt) addSeries(t typeQ, start time.Time, days int, sites ...siteQ) (e
 
 		for rows.Next() {
 			p := ts.Point{}
-			err = rows.Scan(&p.DateTime, &p.Value, &p.Error)
-			if err != nil {
+			innererr = rows.Scan(&p.DateTime, &p.Value, &p.Error)
+			if innererr != nil {
 				return
 			}
 
@@ -187,7 +187,7 @@ func (plt *plt) addSeriesLabelMethod(t typeQ, start time.Time, days int, s siteQ
 
 	switch {
 	case start.IsZero() && days == 0:
-		rows, err = db.Query(
+		rows, innererr = db.Query(
 			`SELECT time, value, error, methodpk FROM fits.observation
 		WHERE
 		sitepk = (
@@ -198,7 +198,7 @@ func (plt *plt) addSeriesLabelMethod(t typeQ, start time.Time, days int, s siteQ
 		)
 	ORDER BY time ASC;`, s.siteID, t.typeID)
 	case !start.IsZero() && days == 0:
-		rows, err = db.Query(
+		rows, innererr = db.Query(
 			`SELECT time, value, error, methodpk FROM fits.observation
 		WHERE
 		sitepk = (
@@ -210,7 +210,7 @@ func (plt *plt) addSeriesLabelMethod(t typeQ, start time.Time, days int, s siteQ
 	AND time > $3
 	ORDER BY time ASC;`, s.siteID, t.typeID, start)
 	case !start.IsZero() && days != 0:
-		rows, err = db.Query(
+		rows, innererr = db.Query(
 			`SELECT time, value, error, methodpk FROM fits.observation
 		WHERE
 		sitepk = (
@@ -233,8 +233,8 @@ func (plt *plt) addSeriesLabelMethod(t typeQ, start time.Time, days int, s siteQ
 
 	for rows.Next() {
 		p := ts.Point{}
-		err = rows.Scan(&p.DateTime, &p.Value, &p.Error, &methodPK)
-		if err != nil {
+		innererr = rows.Scan(&p.DateTime, &p.Value, &p.Error, &methodPK)
+		if innererr != nil {
 			return
 		}
 		series[methodPK] = append(series[methodPK], p)
@@ -245,8 +245,8 @@ func (plt *plt) addSeriesLabelMethod(t typeQ, start time.Time, days int, s siteQ
 	for k, v := range series {
 		var m string
 
-		err = db.QueryRow(`select name from fits.method where methodPK = $1`, k).Scan(&m)
-		if err != nil {
+		innererr = db.QueryRow(`select name from fits.method where methodPK = $1`, k).Scan(&m)
+		if innererr != nil {
 			return
 		}
 
@@ -260,14 +260,14 @@ func (plt *plt) setStddevPop(s siteQ, t typeQ, start time.Time, days int) (err e
 	var m, d float64
 	switch {
 	case start.IsZero() && days == 0:
-		err = db.QueryRow(
+		innererr = db.QueryRow(
 			`SELECT avg(value), stddev_pop(value) FROM fits.observation
          WHERE
          sitepk = (SELECT DISTINCT ON (sitepk) sitepk from fits.site where siteid = $1)
          AND typepk = ( SELECT typepk FROM fits.type WHERE typeid = $2 )`,
 			s.siteID, t.typeID).Scan(&m, &d)
 	case !start.IsZero() && days == 0:
-		err = db.QueryRow(
+		innererr = db.QueryRow(
 			`SELECT avg(value), stddev_pop(value) FROM fits.observation
           WHERE
           sitepk = (SELECT DISTINCT ON (sitepk) sitepk from fits.site where siteid = $1)

@@ -424,7 +424,7 @@ func stddevPop(siteID, typeID string, methodID string, start time.Time) (m, d fl
 
 	switch {
 	case start == tZero && methodID == "":
-		err = db.QueryRow(
+		innererr = db.QueryRow(
 			`SELECT avg(value), stddev_pop(value) FROM fits.observation
          WHERE
          sitepk = (SELECT DISTINCT ON (sitepk) sitepk from fits.site where siteid = $1)
@@ -432,7 +432,7 @@ func stddevPop(siteID, typeID string, methodID string, start time.Time) (m, d fl
 			siteID, typeID).Scan(&m, &d)
 
 	case start != tZero && methodID == "":
-		err = db.QueryRow(
+		innererr = db.QueryRow(
 			`SELECT avg(value), stddev_pop(value) FROM fits.observation
           WHERE
           sitepk = (SELECT DISTINCT ON (sitepk) sitepk from fits.site where siteid = $1)
@@ -441,7 +441,7 @@ func stddevPop(siteID, typeID string, methodID string, start time.Time) (m, d fl
 			siteID, typeID, start).Scan(&m, &d)
 
 	case start == tZero && methodID != "":
-		err = db.QueryRow(
+		innererr = db.QueryRow(
 			`SELECT avg(value), stddev_pop(value) FROM fits.observation
          WHERE
          sitepk = (SELECT DISTINCT ON (sitepk) sitepk from fits.site where siteid = $1)
@@ -450,7 +450,7 @@ func stddevPop(siteID, typeID string, methodID string, start time.Time) (m, d fl
 			siteID, typeID, methodID).Scan(&m, &d)
 
 	case start != tZero && methodID != "":
-		err = db.QueryRow(
+		innererr = db.QueryRow(
 			`SELECT avg(value), stddev_pop(value) FROM fits.observation
          WHERE
          sitepk = ( SELECT DISTINCT ON (sitepk) sitepk from fits.site where siteid = $1)
@@ -476,7 +476,7 @@ func loadObs(siteID, typeID, methodID string, start time.Time) (values []value, 
 
 	switch {
 	case start == tZero && methodID == "":
-		rows, err = db.Query(
+		rows, innererr = db.Query(
 			`SELECT time, value, error FROM fits.observation 
 		WHERE 
 		sitepk = (
@@ -487,7 +487,7 @@ func loadObs(siteID, typeID, methodID string, start time.Time) (values []value, 
 		)
 	ORDER BY time ASC;`, siteID, typeID)
 	case start != tZero && methodID == "":
-		rows, err = db.Query(
+		rows, innererr = db.Query(
 			`SELECT time, value, error FROM fits.observation 
 		WHERE 
 		sitepk = (
@@ -499,7 +499,7 @@ func loadObs(siteID, typeID, methodID string, start time.Time) (values []value, 
 	AND time > $3
 	ORDER BY time ASC;`, siteID, typeID, start)
 	case start == tZero && methodID != "":
-		rows, err = db.Query(
+		rows, innererr = db.Query(
 			`SELECT time, value, error FROM fits.observation 
 		WHERE 
 		sitepk = (
@@ -513,7 +513,7 @@ func loadObs(siteID, typeID, methodID string, start time.Time) (values []value, 
 			)	
 	ORDER BY time ASC;`, siteID, typeID, methodID)
 	case start != tZero && methodID != "":
-		rows, err = db.Query(
+		rows, innererr = db.Query(
 			`SELECT time, value, error FROM fits.observation 
 		WHERE 
 		sitepk = (
@@ -534,12 +534,12 @@ func loadObs(siteID, typeID, methodID string, start time.Time) (values []value, 
 	defer rows.Close()
 	for rows.Next() {
 		v := value{}
-		err = rows.Scan(&v.T, &v.V, &v.E)
-		if err != nil {
+		innererr = rows.Scan(&v.T, &v.V, &v.E)
+		if innererr != nil {
 			return
 		}
 
-		values = append(values, v)
+		innervalues = append(innervalues, v)
 	}
 	rows.Close()
 
@@ -557,14 +557,14 @@ func extremes(values []value) (min, max int, hasErrors bool) {
 	for i, v := range values {
 		if v.V > maxV.V {
 			maxV = v
-			max = i
+			innermax = i
 		}
 		if v.V < minV.V {
 			minV = v
-			min = i
+			innermin = i
 		}
 		if !hasErrors && v.E > 0 {
-			hasErrors = true
+			innerhasErrors = true
 		}
 	}
 
